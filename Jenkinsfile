@@ -8,7 +8,7 @@ pipeline {
         // Docker Hub credentials
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
 
-        // SSH (Server-2)
+        // SSH to Server-2
         SSH_CREDENTIALS_ID = 'server2-ssh-key'
         SERVER2_USER = 'ubuntu'
         SERVER2_HOST = '100.25.213.78'
@@ -17,7 +17,7 @@ pipeline {
         CONTAINER_NAME = 'node_backend'
         APP_PORT = '3000'
 
-        // Mongo (already running on Server-2 in appnet)
+        // Mongo (already running in appnet on Server-2)
         MONGO_URI = 'mongodb://admin:admin123@mongo_db:27017/todo_db?authSource=admin'
         MONGO_DB = 'todo_db'
         MONGO_COLLECTION = 'tasks'
@@ -66,24 +66,22 @@ pipeline {
                 echo '🚀 Deploying backend on Server-2'
                 sshagent(credentials: [SSH_CREDENTIALS_ID]) {
                     sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@100.25.213.78 << 'EOF'
+ssh -o StrictHostKeyChecking=no ubuntu@100.25.213.78 << 'EOF'
+docker pull jeeva3008/backend:latest
+docker rm -f node_backend || true
 
-                      docker pull jeeva3008/backend:latest
-                      docker rm -f node_backend || true
-
-                      docker run -d \
-                        --name node_backend \
-                        --network appnet \
-                        --restart unless-stopped \
-                        -p 3000:3000 \
-                        -e PORT=3000 \
-                        -e MONGO_URI="mongodb://admin:admin123@mongo_db:27017/todo_db?authSource=admin" \
-                        -e MONGO_DB=todo_db \
-                        -e MONGO_COLLECTION=tasks \
-                        jeeva3008/backend:latest
-
-                    EOF
-                    '''
+docker run -d \
+  --name node_backend \
+  --network appnet \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e PORT=3000 \
+  -e MONGO_URI="mongodb://admin:admin123@mongo_db:27017/todo_db?authSource=admin" \
+  -e MONGO_DB=todo_db \
+  -e MONGO_COLLECTION=tasks \
+  jeeva3008/backend:latest
+EOF
+'''
                 }
             }
         }
