@@ -11,7 +11,7 @@ pipeline {
         // SSH
         SSH_CREDENTIALS_ID = 'server2-ssh-key'
         SERVER2_USER = 'ubuntu'
-        SERVER2_HOST = 'SERVER2_PUBLIC_IP'
+        SERVER2_HOST = '100.25.213.78'
 
         // App
         CONTAINER_NAME = 'node_backend'
