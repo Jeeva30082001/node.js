@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Docker image
-        DOCKER_IMAGE = 'yourdockerhubusername/backend:latest'
+        DOCKER_IMAGE = 'jeeva3008/backend:latest'
 
         // Docker Hub
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
