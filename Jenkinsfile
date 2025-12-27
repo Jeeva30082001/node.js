@@ -5,10 +5,10 @@ pipeline {
         // Docker image
         DOCKER_IMAGE = 'jeeva3008/backend:latest'
 
-        // Docker Hub
+        // Docker Hub credentials
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
 
-        // SSH
+        // SSH (Server-2)
         SSH_CREDENTIALS_ID = 'server2-ssh-key'
         SERVER2_USER = 'ubuntu'
         SERVER2_HOST = '100.25.213.78'
@@ -17,7 +17,7 @@ pipeline {
         CONTAINER_NAME = 'node_backend'
         APP_PORT = '3000'
 
-        // Mongo (running already on Server-2)
+        // Mongo (already running on Server-2 in appnet)
         MONGO_URI = 'mongodb://admin:admin123@mongo_db:27017/todo_db?authSource=admin'
         MONGO_DB = 'todo_db'
         MONGO_COLLECTION = 'tasks'
@@ -25,9 +25,9 @@ pipeline {
 
     stages {
 
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
-                echo '📥 Cloning repository'
+                echo '📥 Checking out source code'
                 checkout scm
             }
         }
@@ -41,6 +41,7 @@ pipeline {
 
         stage('Login to Docker Hub') {
             steps {
+                echo '🔐 Logging into Docker Hub'
                 withCredentials([usernamePassword(
                     credentialsId: DOCKER_CREDENTIALS_ID,
                     usernameVariable: 'DOCKER_USER',
@@ -60,24 +61,29 @@ pipeline {
             }
         }
 
-        stage('Deploy to Server-2 via SSH') {
+        stage('Deploy Backend to Server-2') {
             steps {
-                echo '🚀 Deploying application on Server-2'
+                echo '🚀 Deploying backend on Server-2'
                 sshagent(credentials: [SSH_CREDENTIALS_ID]) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ${SERVER2_USER}@${SERVER2_HOST} << EOF
-                      docker pull ${DOCKER_IMAGE}
-                      docker rm -f ${CONTAINER_NAME} || true
-                      docker run -d \\
-                        --name ${CONTAINER_NAME} \\
-                        -p ${APP_PORT}:${APP_PORT} \\
-                        -e PORT=${APP_PORT} \\
-                        -e MONGO_URI=${MONGO_URI} \\
-                        -e MONGO_DB=${MONGO_DB} \\
-                        -e MONGO_COLLECTION=${MONGO_COLLECTION} \\
-                        ${DOCKER_IMAGE}
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@100.25.213.78 << 'EOF'
+
+                      docker pull jeeva3008/backend:latest
+                      docker rm -f node_backend || true
+
+                      docker run -d \
+                        --name node_backend \
+                        --network appnet \
+                        --restart unless-stopped \
+                        -p 3000:3000 \
+                        -e PORT=3000 \
+                        -e MONGO_URI="mongodb://admin:admin123@mongo_db:27017/todo_db?authSource=admin" \
+                        -e MONGO_DB=todo_db \
+                        -e MONGO_COLLECTION=tasks \
+                        jeeva3008/backend:latest
+
                     EOF
-                    """
+                    '''
                 }
             }
         }
@@ -85,10 +91,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ DEPLOYMENT SUCCESSFUL'
+            echo '✅ BACKEND DEPLOYMENT SUCCESSFUL'
         }
         failure {
-            echo '❌ DEPLOYMENT FAILED'
+            echo '❌ BACKEND DEPLOYMENT FAILED'
         }
         always {
             sh 'docker logout || true'
